@@ -1,0 +1,1603 @@
+---
+title: "Redwood bacterial ecology"
+author: "Claire Willing"
+date: "7/9/2020"
+output: html_document
+---
+---
+title: "RedwoodBacterialEcologyMS"
+author: "Claire Willing"
+date: "5/5/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r message=FALSE, warning=FALSE}
+
+library(phyloseq)
+library(vegan)
+library(lattice)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(nortest)
+library(SoDA)
+library(ecodist)
+library(labdsv)
+library(TITAN2)
+library(gdm)
+library(cowplot)
+library(gridGraphics)
+library(sjPlot)
+library(ggtext)
+library(reshape2)
+```
+
+Reading in my OTU table (phyloseq)
+```{r message=FALSE, warning=FALSE}
+
+##This is commented out because I had to create and save the CSV file for the phyloseq format
+
+#setwd("~/Documents/Research/Thesis_Ch1/Data/CleanData")
+#CN=read.csv("CNData_Cleaned.csv", header=T)
+    #Calculate CN ratio
+    #CNratio=PercentC/PercentN
+    ##Append to table
+    #CNall<-cbind.data.frame(CNratio, CN)
+#attach(CNall)
+
+#Soilread1=read.csv("OtherSoilDataClean.csv", header=T)
+#attach(Soilread1)
+
+#Combine all soil data into one dataframe
+#merging both datasets
+#Soildata<-full_join(Soilread1, CNall)
+
+##mapfile
+#METAdata=read.table("BACTERIA_Meta.txt", header = T)
+#    Soildata$SiteID<-as.character(Soildata$SiteID)
+#    Soildata$Treenum<-as.character(Soildata$Treenum)
+
+
+    
+#METAfull=full_join(METAdata, Soildata)
+
+##Created a new file with full metadata (couldn't script this because of phyloseq)
+#write.csv(METAfull, file = "BACTERIAMETA_complete.csv")
+
+
+
+##biom file and map file
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/")
+biom_file="bacteriaotu.json"
+map_file="MIDMETA_complete.txt"
+biomot=import_biom(biom_file, parseFunction=parse_taxonomy_greengenes)
+META=import_qiime_sample_data(map_file)
+
+```
+
+Creating phyloseq object
+```{r message=FALSE, warning=FALSE}
+
+##merging OTU and metadata
+NOTRARE=merge_phyloseq(biomot, META)
+
+```
+
+Rarification to 5000 reads per sample
+```{r message=FALSE, warning=FALSE}
+set.seed(5)
+
+Bacteriaonly<-subset_taxa(NOTRARE, Kingdom=="Bacteria")
+
+#RARE=rarefy_even_depth(Bacteriaonly, sample.size = 5000)
+#save(RARE, file = "RARE.rda")
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/R")
+load(file = "RARE.rda")
+
+```
+
+Subsetting samples by sample type
+```{r message=FALSE, warning=FALSE}
+##subset by sample type
+Roots<-subset_samples(RARE, SampleType=="Root")
+Soils<-subset_samples(RARE, SampleType=="Soil")
+
+```
+
+Ordination using default of bray for distance (bray is default method for ordinate function)
+```{r message=FALSE, warning=FALSE}
+
+
+Publicationcolors <- function(...){
+  library(scales)
+  discrete_scale("colour","Publication",manual_pal(values = c("#2332A0", "#36B4FC", "#1BFFE8", "#19FF31", "#FFE400", "#FE9400", "#ff5a04", "#AA3407", "red")))
+}
+
+
+ORDtotalvals<-ordinate(RARE, "PCoA")
+ORDbray<-plot_ordination(RARE, ORDtotalvals, color = "SiteID", shape = "SampleType")+ geom_point(size=3)+
+  Publicationcolors()+
+  theme(    
+        text = element_text(family = "Helvetica"),
+        panel.background = element_rect(fill="transparent", colour = NA),
+        plot.background = element_rect(fill="transparent",colour = NA),
+        panel.border = element_rect(fill="transparent", colour = "black"),
+        axis.title.y = element_text(angle=90, size = 14, margin = margin(r=3, unit = "mm"), 
+                                    family="Helvetica"),
+        axis.title.x = element_text(size=14, margin = margin(t=3, unit = "mm")),
+        axis.text.x = element_text(size=14, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+        axis.text.y = element_text(size=14, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+        axis.line = element_blank(),
+        axis.ticks.x = element_line(colour = "black"),
+        axis.ticks.y = element_line(colour = "black"),
+        axis.ticks.length=unit(-1.4, "mm"), 
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.key = element_rect(fill="transparent", colour = NA),
+        legend.position =c(0.09,0.75),
+        legend.key.size= unit(4, "mm"),
+        legend.text = element_text(size =10),
+        legend.spacing = unit(0, "mm"),
+        legend.background = element_rect(fill = "transparent", colour = NA),
+        plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+        strip.background=element_rect(fill="transparent", colour=NA),
+        strip.text = element_text(face="bold"))
+```
+
+Bar plots
+```{r message=FALSE, warning=FALSE}
+
+Top500= names(sort(taxa_sums(RARE), TRUE)[1:500])
+Top500=prune_taxa(Top500, RARE)
+
+Top500_Site1<-subset_samples(Top500, SiteID=="1")
+Top500_Site2<-subset_samples(Top500, SiteID=="2")
+Top500_Site3<-subset_samples(Top500, SiteID=="3")
+Top500_Site4<-subset_samples(Top500, SiteID=="4")
+Top500_Site5<-subset_samples(Top500, SiteID=="5")
+Top500_Site6<-subset_samples(Top500, SiteID=="6")
+Top500_Site7<-subset_samples(Top500, SiteID=="7")
+Top500_Site8<-subset_samples(Top500, SiteID=="8")
+
+
+Site1root<- subset_samples(Top500_Site1, SampleType=="Root")
+Site1soil<-subset_samples(Top500_Site1, SampleType=="Soil")
+Site2root<- subset_samples(Top500_Site2, SampleType=="Root")
+Site2soil<-subset_samples(Top500_Site2, SampleType=="Soil")
+Site3root<- subset_samples(Top500_Site3, SampleType=="Root")
+Site3soil<-subset_samples(Top500_Site3, SampleType=="Soil")
+Site4root<- subset_samples(Top500_Site4, SampleType=="Root")
+Site4soil<-subset_samples(Top500_Site4, SampleType=="Soil")
+Site5root<- subset_samples(Top500_Site5, SampleType=="Root")
+Site5soil<-subset_samples(Top500_Site5, SampleType=="Soil")
+Site6root<- subset_samples(Top500_Site6, SampleType=="Soil")
+Site6soil<-subset_samples(Top500_Site6, SampleType=="Root")
+Site7root<- subset_samples(Top500_Site7, SampleType=="Root")
+Site7soil<-subset_samples(Top500_Site7, SampleType=="Soil")
+Site8root<- subset_samples(Top500_Site8, SampleType=="Root")
+Site8soil<-subset_samples(Top500_Site8, SampleType=="Soil")
+
+
+Site1root <- Site1root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site1soil <- Site1soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site2root <- Site2root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site2soil <- Site2soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+
+Site3root <- Site3root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site3soil <- Site3soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site4root <- Site4root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site4soil <- Site4soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site5root <- Site5root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site5soil <- Site5soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site6root <- Site6root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site6soil <- Site6soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site7root <- Site7root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site7soil <- Site7soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site8root <- Site8root %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site8soil <- Site8soil %>%
+  psmelt() %>%                                       
+  arrange(Phylum) 
+
+Site1root$samptypecode <- "Root"
+Site1soil$samptypecode <- "Soil"
+Site2root$samptypecode <- "Root"
+Site2soil$samptypecode <- "Soil"
+Site3root$samptypecode <- "Root"
+Site3soil$samptypecode <- "Soil"
+Site4root$samptypecode <- "Root"
+Site4soil$samptypecode <- "Soil"
+Site5root$samptypecode <- "Root"
+Site5soil$samptypecode <- "Soil"
+Site6root$samptypecode <- "Root"
+Site6soil$samptypecode <- "Soil"
+Site7root$samptypecode <- "Root"
+Site7soil$samptypecode <- "Soil"
+Site8root$samptypecode <- "Root"
+Site8soil$samptypecode <- "Soil"
+
+Site1root$SiteID <- "1"
+Site1soil$SiteID <- "1"
+Site2root$SiteID <- "2"
+Site2soil$SiteID <- "2"
+Site3root$SiteID <- "3"
+Site3soil$SiteID <- "3"
+Site4root$SiteID <- "4"
+Site4soil$SiteID <- "4"
+Site5root$SiteID <- "5"
+Site5soil$SiteID <- "5"
+Site6root$SiteID <- "6"
+Site6soil$SiteID <- "6"
+Site7root$SiteID <- "7"
+Site7soil$SiteID <- "7"
+Site8root$SiteID <- "8"
+Site8soil$SiteID <- "8"
+
+
+
+
+##colors
+barcolors= c(Acidobacteria="#CC6600", Actinobacteria ="#9F993D", Armatimonadetes="#cfdde5", Bacteroidetes="#006D58", Firmicutes="#005b96", Chloroflexi="#0C2340", Gemmatimonadetes="#6497b1", Nitrospirae="#FDD023", Planctomycetes="#000000", Proteobacteria="#2F4236",SC3="turquoise",SM2F11="#0F7E94",SPAM="#560d0d",TM7="#a297c3",Verrucomicrobia="#625682", AD3="#576A00", Chlorobi="#6f0000", WS3="#3A243B", Spirochaetes="#0A00A5")
+
+
+bars_all<- rbind(Site1root, Site1soil,Site2root, Site2soil, Site3root, Site3soil, Site4root, Site4soil,
+                 Site5root, Site5soil, Site6root, Site6soil, Site7root, Site7soil, Site8root, Site8soil)
+
+barplot<-ggplot(data = filter(bars_all), aes(SiteID, Abundance, fill = Phylum)) +
+  facet_wrap(~samptypecode,scales="free_x", ncol = 1, strip.position = "right") +
+  geom_bar(stat = "identity", position = position_fill()) +
+  guides(fill = guide_legend(ncol = 1))+
+  scale_colour_manual(values = barcolors, labels=c("Acidobacteria", "Actinobacteria", "AD3", "Bacteroidetes", "Chloroflexi", "Firmicutes", "Gemmatimonadetes", "Nitrospirae", "Proteobacteria", "SPAM", "TM7", "Verrucomicrobia", "WS3", "Unassigned"), name="Type")+ 
+      scale_fill_manual(values = barcolors)+
+            scale_y_continuous("Relative abundance")+
+            xlab("Site ID")+
+            theme(
+            text = element_text(family = "Helvetica"),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            strip.background.x=element_rect(fill="LightGray",colour = NA),
+            strip.background.y=element_rect(fill="LightGray",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title.y = element_text(angle=90, size = 14, margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=12, margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(angle=0, size=14, 
+                                       margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=14, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"), 
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            legend.key = element_rect(fill="transparent", colour = NA),
+            legend.box = "horizontal",
+            legend.key.size= unit(4, "mm"),
+            legend.text = element_text(size =11),
+            legend.spacing = unit(0, "mm"),
+            legend.background = element_rect(fill = "transparent", colour = NA),
+            plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+            strip.background=element_rect(fill="transparent", colour=NA),
+            strip.text = element_text(face="bold"))
+
+```
+GDM Step 1: OTU Data for GDM
+```{r message=FALSE, warning=FALSE}
+##write the rarified meta data into a data frame
+dfroot<-as(sample_data(Roots), "data.frame")
+dfsoil<-as(sample_data(Soils),"data.frame")
+
+##write a datatable of rarified data 
+OTUrootraretemp<-as(otu_table(Roots), "matrix")
+OTUrareroot<-as.data.frame(OTUrootraretemp)
+
+OTUsoilraretemp<-as(otu_table(Soils), "matrix")
+OTUraresoil<-as.data.frame(OTUsoilraretemp)
+      
+##calculate bray-curtis distances for fungi (uses vegan)
+root.bc<-vegdist(t(OTUrareroot), "bray")
+soil.bc<-vegdist(t(OTUraresoil), "bray")
+
+##Extract the rare data
+GDMrareroot<-as.data.frame(t(OTUrareroot))
+GDMraresoil<-as.data.frame(t(OTUraresoil))
+
+#append SiteID
+SampleUnique<-dfroot$SampleUnique
+GDMrareroot<-cbind(SampleUnique, GDMrareroot)
+SampleUnique<-dfsoil$SampleUnique
+GDMraresoil<-cbind(SampleUnique, GDMraresoil)
+
+
+#write.csv(GDMrareroot, "BacteriaGDM_rareroot.csv")
+#write.csv(GDMraresoil, "BacteriaGDM_raresoil.csv")
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/R")
+bioDroot<-read.csv("BacteriaGDM_rareroot.csv", header =T)
+bioDsoil<-read.csv("BacteriaGDM_raresoil.csv", header=T)
+
+#remove extraneous columns from getting names formatted between files
+bioDroot<-dplyr::select(bioDroot,-X, -UniqueID_root)
+bioDsoil<-dplyr::select(bioDsoil,-X, -UniqueID_soil)
+
+```
+Step 2: Environmental Data for GDM	
+```{r message=FALSE, warning=FALSE}
+##Pulling all of the potential data that I want to test in the data frame
+predD_root<-dplyr::select(dfroot, SampleUnique, aet, djf, jja, pH, FINALP, CEC, CNratio, Latitude, Longitude)
+predD_soil<-dplyr::select(dfsoil, SampleUnique, aet, djf, jja, pH, FINALP, CEC, CNratio, Latitude, Longitude)
+
+#write.csv(predD_root, "BacteriaGDM_predD_root.csv")
+#write.csv(predD_soil, "BacteriaGDM_predD_soil.csv")
+
+
+##Had to remove NAs--replaced with same tree sample (only 3 CN ratios had NAs)
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/R")
+predD_root<-read.csv("BacteriaGDM_predD_root.csv", header = T)
+predD_soil<-read.csv("BacteriaGDM_predD_soil.csv", header = T)
+
+
+predD_root<-dplyr::select(predD_root,-X)
+predD_soil<-dplyr::select(predD_soil,-X)
+```
+
+Step 3: Backwards selection for GDM (removing all non-sig factors in last step here)
+```{r message=FALSE, warning=FALSE}
+
+library(Hmisc)
+matrix <-(predD_soil[,2:10])
+matrix<-as.matrix(matrix)
+corr_ana<-cor(matrix)
+
+#with pvals
+corr_ana2<-rcorr(matrix)
+
+##turn into a table
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+    )
+}
+#cormat : matrix of the correlation coefficients
+#pmat : matrix of the correlation p-values
+
+#For my data
+summary = flattenCorrMatrix(corr_ana2$r, corr_ana2$P)
+summary
+
+##only CEC and Final P were had a cor value>0.7, so probably best to pull out CEC; not sure how to deal with the ones for lat and long (semi-correlate with lat and long, but they are kept seperate in this analysis)
+
+predD_root<-dplyr::select(predD_root, -CEC, -djf, -jja, -FINALP, -CNratio)
+predD_soil<-dplyr::select(predD_soil, -CEC, -djf, -jja, -FINALP, -CNratio)
+
+```
+
+Step 4: Formatting site-pairs and running GSM/backward selections of models
+```{r message=FALSE, warning=FALSE}
+
+library(gdm)
+##This is the backwards calculations and it stops at full model-5 of the variables (AET is retained only part of the time, as it is likely co-varied with distance)
+
+#gdmDistroot <- formatsitepair(bioDroot, bioFormat = 1, 
+#                       dist = "bray", abundance = FALSE, 
+#                       siteColumn = "SampleUnique", XColumn = #"Longitude", YColumn = 
+#                         "Latitude", 
+#                       sppColumn = NULL, abundColumn = NULL, #sppFilter = 0, 
+#                       predData = predD_root, distPreds = NULL, #weightType = "equal")
+
+#gdmDistsoil <- formatsitepair(bioDsoil, bioFormat = 1, 
+#                       dist = "bray", abundance = FALSE, 
+#                       siteColumn = "SampleUnique", XColumn = #"Longitude", YColumn = 
+#                         "Latitude",
+#                    sppColumn = NULL, abundColumn = NULL, sppFilter #= 0, 
+#                       predData = predD_soil, distPreds = NULL, #weightType = "equal")
+
+#vars <- gdm.varImp(gdmDistroot, geo = TRUE, splines = NULL)
+#vars
+#varssoil<-gdm.varImp(gdmDistsoil, geo = TRUE, splines = NULL)
+#varssoil
+
+##run model
+#gdm.modelroot <- gdm(gdmDistroot, geo = FALSE, splines = NULL)
+#gdm.modelsoil <- gdm(gdmDistsoil, geo = FALSE, splines = NULL)
+#plot(gdm.modelroot, plot.layout = c(2, 2), plot.color = "blue", plot.linewidth = 2.0)
+#plot(gdm.modelsoil, plot.layout = c(2, 2), plot.color = "blue", plot.linewidth = 2.0)
+
+#save(vars, file = "gdm_roots_Modelselection.rda")
+#save(varssoil, file = "gdm_soil_Modelselection.rda")
+#save(gdm.modelroot, file = "gdm_roots.rda")
+#save(gdm.modelsoil, file = "gdm_soil.rda")
+
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/R/")
+load(file = "gdm_roots.rda")
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/R/")
+load(file = "gdm_soil.rda")
+load(file= "gdm_roots_Modelselection.rda")
+load(file = "gdm_soil_Modelselection.rda")
+
+
+summary.gdm(gdm.modelroot)
+summary.gdm(gdm.modelsoil)
+
+# Sum coefficients for each predictor
+coefSumsRoot <- c()
+for (i in 1:length(gdm.modelroot$predictors)){
+  j <- (i * 3) - 2
+  coefSumsRoot[i] <- sum(gdm.modelroot$coefficients[j:(j+2)])
+}
+
+coefSumsSoil <- c()
+for (i in 1:length(gdm.modelsoil$predictors)){
+  j <- (i * 3) - 2
+  coefSumsSoil[i] <- sum(gdm.modelsoil$coefficients[j:(j+2)])
+}
+# Add those values to a simple data frame
+coeffsRootsBac <- data.frame(predictor = gdm.modelroot$predictors, coefficient = coefSumsRoot)
+coeffsRootsBac
+
+coeffsSoilsBac <- data.frame(predictor = gdm.modelsoil$predictors, coefficient = coefSumsSoil)
+coeffsSoilsBac
+```
+GDM Plots
+
+```{r message=FALSE, warning=FALSE}
+
+rootsplines<-isplineExtract(gdm.modelroot)
+soilsplines<-isplineExtract(gdm.modelsoil)
+
+GDMaet<-function(){plot(rootsplines[[1]][,"aet"], rootsplines[[2]][,"aet"], type="l", 
+lwd=3, xlab="Actual evapotranspiration (mm)",ylim=c(0,0.3),ylab="Partial Ecological Distance", tck=.02, las=1)
+   points(soilsplines[[1]][,"aet"], soilsplines[[2]][,"aet"], col="darkgray", type="l", lwd=3)
+   legend("topleft", legend = c("Root", "Soil"), col=c("black", "darkgray"), lwd=3, cex=0.8, box.lty=0)
+   par(ps = 14, cex = 1, cex.main = 1)}
+GDMaet<-ggdraw(GDMaet)
+  
+
+GDMph<-function() {plot(rootsplines[[1]][,"pH"], rootsplines[[2]][,"pH"], type="l", col="black", 
+lwd=3, xlab="Soil pH", ylim=c(0,1.0),ylab="Partial Ecological Distance", tck=.02, las=1)
+  points(soilsplines[[1]][,"pH"], soilsplines[[2]][,"pH"], type="l", col="darkgray",ylim=c(0,1.0),
+lwd=3)
+   legend("topleft", legend = c("Root", "Soil"), col=c("black", "darkgray"), lwd=3, cex=0.8, box.lty=0)
+   par(ps = 14, cex = 1, cex.main = 1)}
+GDMph<-ggdraw(GDMph)
+
+```
+
+
+```{r message=FALSE, warning=FALSE}
+
+RootsRARE<-subset_samples(RARE, SampleType=="Root")
+SoilsRARE<-subset_samples(RARE, SampleType=="Soil")
+
+##Extracting spp counts to a transposed dataframe
+BACTERIAdf<-t(as.data.frame(as(otu_table(RARE), "matrix")))
+Rootdf<-t(as.data.frame(as(otu_table(RootsRARE), "matrix")))
+Soildf<-t(as.data.frame(as(otu_table(SoilsRARE), "matrix")))
+
+##Extracting Metadata    
+Bdf<-(as(sample_data(RARE), "data.frame")) 
+Rdf<-as(sample_data(RootsRARE), "data.frame")
+Sdf<-as(sample_data(SoilsRARE),"data.frame")
+
+
+##Variance in total, root, and soil fungal comm. across sites
+##This is accounting for the nested design; tree num is nested within Site 
+adonisresults<-adonis(BACTERIAdf ~ SiteID*SampleType, data=Bdf, strata = Bdf$Treenum, perm=1e3)
+
+
+##and how different is treenum when you control for site 
+adonis(Rootdf~ Treenum, data=Rdf, strata = Rdf$SiteID, perm=1e3)
+adonis(Soildf~ Treenum, data=Sdf, strata = Sdf$SiteID, perm=1e3)
+```
+
+
+Alpha diversity in Roots
+```{r message=FALSE, warning=FALSE}
+RichnessROOTS<-estimate_richness(Roots, split = TRUE, measures = NULL)
+RichnessROOTS$SampleUnique<-rownames(RichnessROOTS)
+SampleData<-as(sample_data(Roots), "data.frame")
+RichnessROOTS<-full_join(RichnessROOTS, SampleData)
+
+library(lme4)
+library(lmerTest)
+##Treenum nested within SiteID (both are random effects)
+model3a<-lmer(formula = Simpson~scale(aet)*scale(pH) +(1|SiteID/Treenum), data = RichnessROOTS, REML=F)
+model3b<-lmer(formula = Simpson~scale(aet)*scale(pH) +(1|SiteID), data = RichnessROOTS, REML = F)
+model3c<-lmer(formula = Simpson~scale(aet)+scale(pH) +(1|SiteID/Treenum), data = RichnessROOTS, REML = F)
+model3d<-lmer(formula = Simpson~scale(aet)+scale(pH) +(1|SiteID), data = RichnessROOTS, REML=F)
+
+AIC(model3a, model3b, model3c, model3d)
+BIC(model3a, model3b, model3c, model3d)
+
+model3c<-lmer(formula = Simpson~aet+scale(pH) +(1|SiteID/Treenum), data = RichnessROOTS, REML = T)
+##Check boundaries
+
+
+##Model3c has lowest AIC and BIC; no interaction term and keeps Treenum nested within site
+summary(model3c)
+library(car)
+qqp(residuals(model3c), col=2)
+
+
+##Shannon
+model3a.Shannon<-lmer(formula = Shannon~scale(aet)*scale(pH) +(1|SiteID/Treenum), data = RichnessROOTS,REML = F)
+model3b.Shannon<-lmer(formula = Shannon~scale(aet)*scale(pH) +(1|SiteID), data = RichnessROOTS,REML = F)
+model3c.Shannon<-lmer(formula = Shannon~scale(aet)+scale(pH) +(1|SiteID/Treenum), data = RichnessROOTS, REML = F)
+model3d.Shannon<-lmer(formula = Shannon~scale(aet)+scale(pH) +(1|SiteID), data = RichnessROOTS, REML = F)
+
+AIC(model3a.Shannon, model3b.Shannon, model3c.Shannon, model3d.Shannon)
+BIC(model3a.Shannon, model3b.Shannon, model3c.Shannon, model3d.Shannon)
+
+##model3d AIC/BIC within 2 of 3c, but no convergenance for 3c, so using 3d (no treenum nested within site)
+
+model3d.Shannon<-lmer(formula = Shannon~scale(aet)+scale(pH) +(1|SiteID), data = RichnessROOTS, REML = T)
+qqp(residuals(model3d), col=2)
+summary(model3d.Shannon)
+
+
+Rootdiversitymodeltab<-tab_model(model3c, model3d.Shannon, auto.label = F)
+Rootdiversitymodeltab
+
+Simpsonroots<-ggplot(data=RichnessROOTS, aes(x=aet, y=Simpson))+
+  stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), geom="errorbar", 
+        color="black") +
+  stat_summary(fun=mean, geom="point", color="black", size=2)+
+  labs(x="AET (scaled)", y="Simpson Diversity")+
+  geom_abline(aes(intercept=1.006e+00, slope=-6.258e-05), color="black", linetype = "dashed")+
+  ylim(0.940, 0.997)+
+    theme( text = element_text(family = "Helvetica"),
+            plot.title = element_text(margin = margin(b=5, r=5, l=5, unit = "mm"),
+                                      size = rel(1),
+                                      hjust = 0.5),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = rel(1), margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=rel(1), margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(size=12, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=12, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_line(colour = "black"),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"), 
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
+Simpsonroots
+
+
+Shannonroots<-ggplot(data=RichnessROOTS, aes(x=scale(aet), y=Shannon))+
+  stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
+        geom="errorbar", color="black") +
+  stat_summary(fun=mean, geom="point", color="black", size=2)+
+  labs(x="AET (scaled)", y="Shannon Diversity")+
+  geom_abline(aes(intercept=`(Intercept)`, slope=`scale(aet)`), data=as.data.frame(t(fixef(model3d.Shannon))), color="black", linetype = "dashed")+
+  ylim(4.5, 6.5)+
+  theme( 
+            text = element_text(family = "Helvetica"),
+            plot.title = element_text(margin = margin(b=5, r=5, l=5, unit = "mm"),
+                                      size = rel(1),
+                                      hjust = 0.5),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = rel(1), margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=rel(1), margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(size=12, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=12, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_line(colour = "black"),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"), 
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
+
+Shannonroots
+```
+
+Alpha diversity in Soils
+```{r message=FALSE, warning=FALSE}
+
+RichnessSOILS<-estimate_richness(Soils, split = TRUE, measures = NULL)
+RichnessSOILS$SampleUnique<-rownames(RichnessSOILS)
+SampleDataSoil<-as(sample_data(Soils), "data.frame")
+RichnessSOILS<-full_join(RichnessSOILS, SampleDataSoil)
+
+##nested ANOVA of Richness and model of Richness
+library(lme4)
+##Treenum nested within SiteID (both are random effects)
+
+
+model4a<-lmer(formula = Simpson~scale(aet)*scale(pH) +(1|SiteID/Treenum), data = RichnessSOILS, REML = F)
+model4b<-lmer(formula = Simpson~scale(aet)+scale(pH) +(1|SiteID/Treenum), data = RichnessSOILS, REML = F)
+model4c<-lmer(formula = Simpson~scale(aet)*scale(pH) +(1|SiteID), data = RichnessSOILS, REML = F)
+model4d<-lmer(formula = Simpson~scale(aet)+scale(pH) +(1|SiteID), data = RichnessSOILS, REML = F)
+
+
+##delt AIC is less than 2, pick one with fewest parameters; delt AIC 2>marginally sig in a likelihood ratio test
+AIC(model4a, model4b, model4c, model4d)
+BIC(model4a, model4b, model4c, model4d)
+
+##Ran model with and without two outliers (row65,row71); same inference, better model fit
+RichnessSOILS<-dplyr::filter(RichnessSOILS, Simpson>0.98)
+
+##now with restricted max. likelihood
+model4c<-lmer(formula = Simpson~scale(aet)*scale(pH) +(1|SiteID), data = RichnessSOILS, REML = T)
+qqp(residuals(model4c), col=2)
+
+
+
+##Model4c appears to be best here (the others are overfit)
+summary (model4c)
+
+
+model4a.shannon<-lmer(formula = Shannon~scale(aet)*scale(pH) +(1|SiteID/Treenum), data = RichnessSOILS,REML = F)
+model4b.shannon<-lmer(formula = Shannon~scale(aet)*scale(pH) +(1|SiteID/Treenum), data = RichnessSOILS,REML = F)
+model4c.shannon<-lmer(formula = Shannon~scale(aet)*scale(pH) +(1|SiteID), data = RichnessSOILS,REML = F)
+model4d.shannon<-lmer(formula = Shannon~scale(aet)+scale(pH) +(1|SiteID), data = RichnessSOILS,REML = F)
+
+AIC(model4a.shannon, model4b.shannon, model4c.shannon, model4d.shannon)
+BIC(model4a.shannon, model4b.shannon, model4c.shannon, model4d.shannon)
+
+#model4c.shannon has lowest AIC and BIC
+model4c.shannon<-lmer(formula = Shannon~scale(aet)*scale(pH) +(1|SiteID), data = RichnessSOILS,REML = T)
+summary(model4c.shannon)
+library(car)
+qqp(residuals(model4c.shannon), col=2)
+
+
+
+Simpsonsoils<-ggplot(data=RichnessSOILS, aes(x=scale(aet), y=Simpson))+
+  stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
+        geom="errorbar", color="darkgray") +
+  stat_summary(fun=mean, geom="point", color="darkgray", size=2)+
+  labs(x="AET (scaled)", y="Simpson Diversity")+      
+  #geom_abline(aes(intercept=`(Intercept)`, slope=`scale(aet)`),   
+  #            data=as.data.frame(t(fixef(model4c))),color="darkgrey", linetype = "twodash")+
+  ylim(0.940, 0.997)+
+  theme(
+            text = element_text(family = "Helvetica"),
+            plot.title = element_text(margin = margin(b=5, r=5, l=5, unit = "mm"),
+                                      size = rel(1),
+                                      hjust = 0.5),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = rel(1), margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=rel(1), margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(size=12, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=12, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_line(colour = "black"),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"), 
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
+ Simpsonsoils 
+
+
+Shannonsoils<-ggplot(data=RichnessSOILS, aes(x=scale(aet), y=Shannon))+
+  stat_summary(fun.data=mean_sdl, fun.args = list(mult=1), 
+        geom="errorbar", color="darkgray") +
+  stat_summary(fun=mean, geom="point", color="darkgray", size=2)+
+  labs(x="AET (scaled)", y="Shannon Diversity")+ 
+   geom_abline(aes(intercept=`(Intercept)`, slope=`scale(aet)`), data=as.data.frame(t(fixef(model4c.shannon))), color="darkgrey", linetype = "twodash")+
+  ylim(4.5, 6.5)+
+  theme(
+          text = element_text(family = "Helvetica"),
+          plot.title = element_text(margin = margin(b=5, r=5, l=5, unit = "mm"),
+                                      size = rel(1),
+                                      hjust = 0.5),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = rel(1), margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=rel(1), margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(size=12, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=12, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_line(colour = "black"),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"), 
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank())
+Shannonsoils
+```
+
+Rank abundance
+```{r message=FALSE, warning=FALSE}
+Roots1<-subset_samples(Roots, SiteID=="1")
+Roots2<-subset_samples(Roots, SiteID=="2")
+Roots3<-subset_samples(Roots, SiteID=="3")
+Roots4<-subset_samples(Roots, SiteID=="4")
+Roots5<-subset_samples(Roots, SiteID=="5")
+Roots6<-subset_samples(Roots, SiteID=="6")
+Roots7<-subset_samples(Roots, SiteID=="7")
+Roots8<-subset_samples(Roots, SiteID=="8")
+
+
+Soils1<-subset_samples(Soils, SiteID=="1")
+Soils2<-subset_samples(Soils, SiteID=="2")
+Soils3<-subset_samples(Soils, SiteID=="3")
+Soils4<-subset_samples(Soils, SiteID=="4")
+Soils5<-subset_samples(Soils, SiteID=="5")
+Soils6<-subset_samples(Soils, SiteID=="6")
+Soils7<-subset_samples(Soils, SiteID=="7")
+Soils8<-subset_samples(Soils, SiteID=="8")
+
+
+Rootslow<-merge_phyloseq(Roots8, Roots7, Roots6, Roots4)
+Rootsmd<-merge_phyloseq(Roots5, Roots3)
+Rootshigh<-merge_phyloseq(Roots1, Roots2)
+
+Soilslow<-merge_phyloseq(Soils8, Soils7, Soils6, Soils4)
+Soilsmd<-merge_phyloseq(Soils5, Soils3)
+Soilshigh<-merge_phyloseq(Soils1, Soils2)
+
+
+
+##AET low (roots)
+phyloTemplow = transform_sample_counts(Rootslow, function(x) 1e+02 * x/sum(x))
+clusterDatalow = psmelt(phyloTemplow)
+clusterDatalow = filter(clusterDatalow,Abundance > 0)
+# this is where the mean is calculated and the taxa to display is chosen
+clusterAgglow = aggregate(Abundance ~ OTU + Phylum,data=clusterDatalow,mean)
+# filtering and picking the number to display
+clusterAgglow = clusterAgglow[order(-clusterAgglow$Abundance),][1:50,]
+clusterAgglow$AET="C"
+clusterAgglow$SampleType="Root"
+
+##AET low (soils)
+phyloTemplowsoil = transform_sample_counts(Soilslow, function(x) 1e+02 * x/sum(x))
+clusterDatalowsoil = psmelt(phyloTemplowsoil)
+clusterDatalowsoil = filter(clusterDatalowsoil,Abundance > 0)
+# this is where the mean is calculated and the taxa to display is chosen
+clusterAgglowsoil = aggregate(Abundance ~ OTU + Phylum,data=clusterDatalowsoil,mean)
+# filtering and picking the number to display
+clusterAgglowsoil = clusterAgglowsoil[order(-clusterAgglowsoil$Abundance),][1:50,]
+clusterAgglowsoil$AET="C"
+clusterAgglowsoil$SampleType="Soil"
+
+
+
+##AET Md (roots)
+phyloTempmd = transform_sample_counts(Rootsmd, function(x) 1e+02 * x/sum(x))
+clusterDatamd = psmelt(phyloTempmd)
+clusterDatamd = filter(clusterDatamd,Abundance > 0)
+clusterAggmd = aggregate(Abundance ~ OTU + Phylum,data=clusterDatamd,mean)
+clusterAggmd = clusterAggmd[order(-clusterAggmd$Abundance),][1:50,]
+clusterAggmd$AET="B"
+clusterAggmd$SampleType="Root"
+
+##AET Md (soils)
+phyloTempmdsoils = transform_sample_counts(Soilsmd, function(x) 1e+02 * x/sum(x))
+clusterDatamdsoils = psmelt(phyloTempmdsoils)
+clusterDatamdsoils = filter(clusterDatamdsoils,Abundance > 0)
+clusterAggmdsoils = aggregate(Abundance ~ OTU + Phylum,data=clusterDatamdsoils,mean)
+clusterAggmdsoils = clusterAggmdsoils[order(-clusterAggmdsoils$Abundance),][1:50,]
+clusterAggmdsoils$AET="B"
+clusterAggmdsoils$SampleType="Soil"
+
+##AET High (roots)
+phyloTemphigh = transform_sample_counts(Rootshigh, function(x) 1e+02 * x/sum(x))
+clusterDatahigh = psmelt(phyloTemphigh)
+clusterDatahigh = filter(clusterDatahigh,Abundance > 0)
+clusterAgghigh = aggregate(Abundance ~ OTU + Phylum,data=clusterDatahigh,mean)
+clusterAgghigh = clusterAgghigh[order(-clusterAgghigh$Abundance),][1:50,]
+clusterAgghigh$AET="A"
+clusterAgghigh$SampleType="Root"
+
+
+##AET High (soils)
+phyloTemphighsoils = transform_sample_counts(Soilshigh, function(x) 1e+02 * x/sum(x))
+clusterDatahighsoils = psmelt(phyloTemphighsoils)
+clusterDatahighsoils = filter(clusterDatahighsoils,Abundance > 0)
+clusterAgghighsoils = aggregate(Abundance ~ OTU + Phylum,data=clusterDatahighsoils,mean)
+clusterAgghighsoils = clusterAgghighsoils[order(-clusterAgghighsoils$Abundance),][1:50,]
+clusterAgghighsoils$AET="A"
+clusterAgghighsoils$SampleType="Soil"
+
+Tempclus<-full_join(clusterAgglow,clusterAggmd)
+Tempclus<-full_join(Tempclus, clusterAgghigh)
+Tempclus<-full_join(Tempclus, clusterAgglowsoil)
+Tempclus<-full_join(Tempclus, clusterAggmdsoils)
+Cluterfull<-full_join(Tempclus, clusterAgghighsoils)
+
+##bring together full dataset
+
+clusterDatahigh$AET="A"
+clusterDatahighsoils$AET="A"
+clusterDatamd$AET="B"
+clusterDatamdsoils$AET="B"
+clusterDatalow$AET="C"
+clusterDatalowsoil$AET="C"
+
+fulldataclus<-full_join(clusterDatahigh, clusterDatahighsoils)
+fulldataclus<-full_join(fulldataclus, clusterDatamd)
+fulldataclus<-full_join(fulldataclus, clusterDatamdsoils)
+fulldataclus<-full_join(fulldataclus, clusterDatalow)
+fulldataclus<-full_join(fulldataclus, clusterDatalowsoil)
+
+
+
+
+Cluterfull2 <-Cluterfull %>% 
+  group_by(SampleType, AET) %>% 
+  mutate(.r = row_number())
+
+fulldataclus2<-fulldataclus%>% 
+  group_by(SampleType, aet) %>% 
+  mutate(.r = row_number())
+
+Taxanames<-as.data.frame(taxtab(RARE))
+Taxanames$OTU<-row.names(Taxanames)
+Cluterfull2<-inner_join(Cluterfull2, Taxanames)
+
+Clusterfull2<-Cluterfull2 %>% 
+  group_by(SampleType, AET) %>% 
+  mutate(.r = row_number())
+
+#write.csv(Cluterfull2, "RankAbundanceTaxa.csv")
+setwd("~/Dropbox/Research/Thesis_Ch3/CleanData/R")
+motile<-read.csv("RankAbundanceTaxa.csv", header = T)
+
+Cluterfull2 <-motile %>% 
+  group_by(SampleType, AET) %>% 
+  mutate(.r = row_number())
+
+
+# New facet label names for supp variable
+labs <- c("High AET (600-700 mm)", "Medium AET (500-600 mm)", "Low AET (400-500 mm)")
+names(labs) <- c("A", "B", "C")
+  
+Rankabundanceplot<-ggplot(motile,aes(x=.r,y=Abundance)) +
+    geom_bar(aes(fill=Phylum),stat="identity") + 
+    facet_grid(AET~SampleType, scales = "free_x", 
+               labeller = labeller(AET = labs))+
+    theme(axis.ticks = element_blank(), axis.text.x = element_blank()) +
+    scale_y_log10()+ylim(0, 17.5)+
+    xlab("Abundance Rank")+
+    ylab("Relative Abundance (%)")+
+    scale_colour_manual(values=barcolors)+
+    scale_fill_manual(values=barcolors)+
+    theme(
+            text = element_text(family = "Helvetica"),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            strip.background.x=element_rect(fill="LightGray",colour = NA),
+            strip.background.y=element_rect(fill="LightGray",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = 12, margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=14, margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_blank(),
+            axis.text.y = element_text(size=14, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            legend.key = element_rect(fill="transparent", colour = NA),
+            legend.direction = "vertical",
+            #legend.position = c(0.9,0.5),
+            legend.justification = c(0,0),
+            legend.key.size= unit(4, "mm"),
+            legend.text = element_text(size =12),
+            legend.title = element_text(size =12, face="bold"),
+            legend.margin = margin(0,0,0,0),
+            legend.box.margin=margin(1,1,1,1),
+            legend.background = element_rect(fill = "transparent", colour = NA),
+            plot.margin=margin(t=5, r=10, b=5, l=10, unit = "mm"),
+            strip.text.x=element_text(size=12),
+            strip.text.y=element_text(size=12))
+
+
+```
+
+Rank barplot
+```{r message=FALSE, warning=FALSE}
+library(stringr)
+my.labels <- c("OTU 0; *Bradyrhizobium sp.*", "OTU 1; *Rhodoplanes sp.*", "OTU 2; *Streptomyces sp.*")
+
+Toptaxafull0<-dplyr::filter(fulldataclus2,OTU=="0")
+Toptaxafull1<-dplyr::filter(fulldataclus2,OTU=="1", SampleType=="Soil")
+Toptaxafull2<-dplyr::filter(fulldataclus2,OTU=="2", SampleType=="Root")
+Toptaxacomplete<-full_join(Toptaxafull0, Toptaxafull1)
+Toptaxacomplete<-full_join(Toptaxacomplete, Toptaxafull2)
+
+
+Toptaxaaverage<-(Toptaxacomplete) %>% 
+  group_by(OTU, SampleType, AET)%>% 
+  summarise(Meansumm=mean(Abundance),
+            SD=sd(Abundance))
+
+
+Toptaxaplot<-ggplot(Toptaxaaverage, aes(x=rev(AET),y=Meansumm, color = str_wrap(OTU,width=10)))+
+  geom_path(Toptaxaaverage, mapping=aes(x=rev(AET),y=Meansumm, group=OTU))+
+  geom_pointrange(aes(
+      ymin = Toptaxaaverage$Meansumm-Toptaxaaverage$SD, 
+      ymax = Toptaxaaverage$Meansumm+Toptaxaaverage$SD),
+                    linetype='solid')+
+  scale_x_discrete(labels = c("Low", "Medium", "High"))+
+  facet_grid(SampleType~., labeller = labeller(AET = labs))+
+    ylim(0, 22.5)+
+    xlab("Actual evapotranspiration")+
+    ylab("Relative Abundance (%)")+
+  scale_colour_manual(values = c("2" = "#AFEEEE", "0"="#5e0e0e", "1"="#e76262"), labels=my.labels, name="Morphology")+
+    theme(
+            text = element_text(family = "Helvetica"),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            strip.background.x=element_rect(fill="LightGray",colour = NA),
+            strip.background.y=element_rect(fill="LightGray",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = 12, margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=12, margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(size=10, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=10, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_blank(),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            legend.key = element_rect(fill="transparent", colour = NA),
+            legend.direction = "vertical",
+            #legend.position = c(0.9,0.5),
+            #legend.justification = c("right","bottom"),
+            legend.key.height= unit(4, "mm"),
+            legend.text = ggtext::element_markdown(),
+            legend.margin = unit(0, "mm"),
+            legend.background = element_rect(fill = "transparent", colour = NA),
+            #legend.title = element_text(face="italic", size = rel(1)),
+            plot.margin=margin(t=5, r=10, b=5, l=10, unit = "mm"),
+            strip.text.x=element_text(size=10),
+            strip.text.y=element_text(size=10))
+
+
+Brady<-dplyr::filter(fulldataclus2, OTU=="0")
+Stepto<-dplyr::filter(fulldataclus2, OTU=="2")
+
+Bradymoda<-lmer(formula = Abundance~scale(aet)*SampleType +(1|SiteID/Treenum), data = Brady, REML = F)
+Bradymodb<-lmer(formula = Abundance~scale(aet)+SampleType +(1|SiteID/Treenum), data = Brady, REML = F)
+Bradymodc<-lmer(formula = Abundance~scale(aet)*SampleType*scale(pH) +(1|SiteID/Treenum), data = Brady, REML = F)
+Bradymodc<-lmer(formula = Abundance~scale(aet)*SampleType+(1|SiteID), data = Brady, REML = F)
+Bradymodd<-lmer(formula = Abundance~scale(aet)*SampleType*scale(pH) +(1|SiteID/Treenum), data = Brady, REML = F)
+Bradymode<-lmer(formula = Abundance~scale(aet)*SampleType+scale(pH) +(1|SiteID/Treenum), data = Brady, REML = F)
+Bradymodf<-lmer(formula = Abundance~scale(aet)*SampleType*scale(pH) +(1|SiteID), data = Brady, REML = F)
+
+AIC(Bradymoda,Bradymodb, Bradymodc, Bradymodd,Bradymode,Bradymodf)
+BIC(Bradymoda,Bradymodb, Bradymodc, Bradymodd, Bradymode, Bradymodf)
+
+##now restricting max likelihood
+Bradymodf<-lmer(formula = Abundance~scale(aet)*SampleType*scale(pH) +(1|SiteID), data = Brady, REML = T)
+
+summary(Bradymodf)
+
+#strepto
+streptomoda<-lmer(formula = Abundance~scale(aet)*SampleType +(1|SiteID/Treenum), data = Stepto, REML = F)
+streptomoda1<-lmer(formula = Abundance~scale(aet)*SampleType +(1|SiteID), data = Stepto, REML = F)
+streptomodb<-lmer(formula = Abundance~scale(aet)+SampleType +(1|SiteID/Treenum), data = Stepto, REML = F)
+streptomodc<-lmer(formula = Abundance~scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Stepto, REML = F)
+streptomodc1<-lmer(formula = Abundance~scale(aet)+scale(pH) +(1|SiteID/Treenum), data = Stepto, REML = F)
+streptomodd<-lmer(formula = Abundance~scale(aet)*SampleType*scale(pH) +(1|SiteID/Treenum), data = Stepto, REML = F)
+streptomode<-lmer(formula = Abundance~scale(aet)*SampleType+scale(pH) +(1|SiteID/Treenum), data = Stepto, REML = F)
+streptomodf<-lmer(formula = Abundance~scale(aet)*SampleType*scale(pH) +(1|SiteID), data = Stepto, REML = F)
+streptomoda<-lmer(formula = Abundance~scale(aet)*SampleType +(1|SiteID/Treenum), data = Stepto, REML = F)
+
+
+AIC(streptomoda,streptomodb, streptomodc, streptomodd,streptomode,streptomodf, streptomodc1, streptomoda1)
+BIC(streptomoda,streptomodb, streptomodc, streptomodd,streptomode,streptomodf, streptomoda1)
+
+##lowest is streptomoda1
+streptomoda1<-lmer(formula = Abundance~scale(aet)*SampleType +(1|SiteID), data = Stepto, REML = T)
+
+summary(streptomoda1)
+
+```
+Pie chart
+```{r}
+motileroot<-dplyr::filter(motile, SampleType=="Root")
+motilesoil<-dplyr::filter(motile, SampleType=="Soil")
+
+motilerootlow<-dplyr::filter(motileroot, AET=="C")
+sum_motilerootlow<-sum(motilerootlow$Abundance)
+
+lowrootlegend<- ggplot(motilerootlow, aes(x="", y=Abundance/sum_motilerootlow, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+   theme_minimal()+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c("#202020","gray", "#E8E8E8"))+
+  theme(text = element_text(family = "Helvetica"),
+          axis.title = element_blank(), 
+          axis.text = element_text(size =14),
+          legend.key.size= unit(4, "mm"),
+          legend.justification = c(0,0),
+          legend.title = element_text(size =12, face="bold"),
+          legend.margin = margin(0,0,0,0),
+          legend.box.margin=margin(0,0,0,0),
+          legend.text = element_text(size =12))
+
+legend<-get_legend(lowrootlegend)
+
+
+motilerootlow<-dplyr::filter(motileroot, AET=="C")
+sum_motilerootlow<-sum(motilerootlow$Abundance)
+lowroot<- ggplot(motilerootlow, aes(x="", y=Abundance/sum_motilerootlow, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+   theme_minimal()+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c("#202020","gray", "#E8E8E8"))+
+  theme(plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+    text = element_text(family = "Helvetica"),
+          axis.title = element_blank(), 
+        legend.position = "none", 
+        axis.text = element_text(size =9))
+
+
+motilerootmd<-dplyr::filter(motileroot, AET=="B")
+sum_motilerootmd<-sum(motilerootmd$Abundance)
+mdroot<- ggplot(motilerootmd, aes(x="", y=Abundance/sum_motilerootmd, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c("#202020","gray", "#E8E8E8"))+
+  theme_minimal()+
+  theme(plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+        text = element_text(family = "Helvetica"),
+          axis.title = element_blank(),
+        legend.position = "none", 
+        axis.text = element_text(size =9))
+
+motileroothigh<-dplyr::filter(motileroot, AET=="A")
+sum_motileroothigh<-sum(motileroothigh$Abundance)
+highroot<- ggplot(motileroothigh, aes(x="", y=Abundance/sum_motileroothigh, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c("#202020","gray", "#E8E8E8"))+
+  theme_minimal()+
+  theme(plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+        text = element_text(family = "Helvetica"),
+          axis.title = element_blank(),
+        legend.position = "none", 
+        axis.text = element_text(size =9))
+
+motilesoillow<-dplyr::filter(motilesoil, AET=="C")
+sum_motilesoillow<-sum(motilesoillow$Abundance)
+lowsoil<- ggplot(motilesoillow, aes(x="", y=Abundance/sum_motilesoillow, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c("#202020","gray", "#E8E8E8"))+
+   theme_minimal()+
+  theme(plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+        text = element_text(family = "Helvetica"),
+          axis.title = element_blank(),
+        legend.position = "none", 
+        axis.text = element_text(size =9))
+
+motilesoilmd<-dplyr::filter(motilesoil, AET=="B")
+sum_motilesoilmd<-sum(motilesoilmd$Abundance)
+mdsoil<- ggplot(motilesoilmd, aes(x="", y=Abundance/sum_motilesoilmd, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c("#202020","gray", "#E8E8E8"))+
+  theme_minimal()+
+  theme(plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+        text = element_text(family = "Helvetica"),
+          axis.title = element_blank(),
+        legend.position = "none", 
+        axis.text = element_text(size =9))
+
+motilesoilhigh<-dplyr::filter(motilesoil, AET=="A")
+sum_motilesoilhigh<-sum(motilesoilhigh$Abundance)
+highsoil<- ggplot(motilesoilhigh, aes(x="", y=Abundance/sum_motilesoilhigh, fill=Morphology))+
+geom_bar(width = 1, stat = "identity")+coord_polar("y", start=0)+
+  scale_colour_manual(values=c("#202020","gray", "#E8E8E8"))+
+    scale_fill_manual(values=c( "#202020","gray", "#E8E8E8"))+
+  theme_minimal()+
+  theme(plot.margin=margin(t=2, r=2, b=2, l=2, unit = "mm"),
+        text = element_text(family = "Helvetica"),
+          axis.title = element_blank(),
+        legend.position = "none", 
+        axis.text = element_text(size =9))
+
+
+legendrank<-get_legend(Rankabundanceplot)
+Rankabundanceplot2<-Rankabundanceplot+theme(legend.position = "none")
+
+Legends<-cowplot::plot_grid(legendrank,legend, NULL,
+                            align="v",
+                            rel_heights = c(1, 1, 1),
+                            ncol = 1)
+
+Rankabundanceplotfull<-ggdraw()+
+     draw_plot(Rankabundanceplot2)+
+     draw_plot(lowroot,
+               x = 0.24, y = 0.07, width = 0.35, height = 0.35, scale=0.6)+
+     draw_plot(mdroot, 
+               x = 0.24, y = 0.36, width = 0.35, height = 0.35, scale=0.6)+
+     draw_plot(highroot, 
+               x = 0.24, y = 0.65, width = 0.35, height = 0.35, scale=0.6)+
+  draw_plot(lowsoil,
+               x = 0.63, y = 0.07, width = 0.35, height = 0.35, scale=0.6)+
+     draw_plot(mdsoil, 
+               x = 0.63, y = 0.36, width = 0.35, height = 0.35, scale=0.6)+
+     draw_plot(highsoil, 
+               x = 0.63, y = 0.65, width = 0.35, height = 0.35, scale=0.6)
+
+
+
+RANKFULLplot<-cowplot::plot_grid(Rankabundanceplotfull,Legends,   
+                   rel_widths = c(3.9,2),
+                   align="hv")
+
+##while these trends are definitely are present across the larger dataset, they seem to be largely driven by relative increases/declines in the top competitors for roots (most abundant couple of taxa)
+
+```
+Actino
+```{r message=FALSE, warning=FALSE}
+#Top500roots = names(sort(taxa_sums(Roots), TRUE)[1:500])
+#Top500roots <- prune_taxa(Top500roots, Roots)
+#Top500soils = names(sort(taxa_sums(Soils), TRUE)[1:500])
+#Top500soils <- prune_taxa(Top500soils, Soils)
+
+
+#Standardized by read count
+Top500roots = transform_sample_counts(Roots, function(x) 100 * x/sum(x*100))
+Top500soils = transform_sample_counts(Soils, function(x) 100 * x/sum(x*100))
+
+
+#Pulling data out of phyloseq object
+Roottable<-as(otu_table(Top500roots), "matrix")
+Roottable<-as.data.frame((Roottable))
+Roottable$OTU<-rownames(Roottable)
+Roottax<-as.data.frame(as(tax_table(Top500roots), "matrix"))
+Roottax$OTU<-rownames(Roottax) 
+SampleData<-as(sample_data(Top500roots), "data.frame")
+
+
+Actinodf<-full_join(Roottable, Roottax)
+Actinodf<-filter(Actinodf, Phylum=="Actinobacteria")
+Amycetalesdf<-full_join(Roottable, Roottax)
+Amycetalesdf<-filter(Amycetalesdf, Order=="Actinomycetales")
+Piedf<-full_join(Roottable, Roottax)
+#write.csv(Piedf, "Bacterialmorphology.csv")
+
+Actinosums<-colSums(Actinodf[,1:114])
+Actinosumsdf=as.data.frame(Actinosums)
+Amycetalessums<-colSums(Amycetalesdf[,1:114])
+Amycetalessumdf=as.data.frame(Amycetalessums)
+
+Actinosumsdf$SampleUnique<-rownames(Actinosumsdf)
+Actinodf<-full_join(Actinosumsdf, SampleData)
+Actinodf$Type="Root;Actinobacteria"
+Amycetalessumdf$SampleUnique<-rownames(Amycetalessumdf)
+Amycetalesdf<-full_join(Amycetalessumdf, SampleData)
+Amycetalesdf$Type="Root;Actinomycetales"
+
+
+#Pulling data out of phyloseq object
+Soiltable<-(as(otu_table(Top500soils), "matrix"))
+Soiltable<-as.data.frame((Soiltable))
+Soiltable$OTU<-rownames(Soiltable)
+Soiltax<-as.data.frame(as(tax_table(Top500soils), "matrix"))
+Soiltax$OTU<-rownames(Soiltax) 
+SampleDataSoil<-as(sample_data(Top500soils), "data.frame")
+
+
+SoilActinodf<-full_join(Soiltable, Soiltax)
+SoilActinodf<-filter(SoilActinodf, Phylum=="Actinobacteria")
+SoilAmycetalesdf<-full_join(Soiltable, Soiltax)
+SoilAmycetalesdf<-filter(SoilAmycetalesdf, Order=="Actinomycetales")
+
+SoilActinosums<-colSums(SoilActinodf[,1:122])
+SoilActinosumsdf=as.data.frame(SoilActinosums)
+SoilAmycetalessums<-colSums(SoilAmycetalesdf[,1:122])
+SoilAmycetalessumsdf=as.data.frame(SoilAmycetalessums)
+
+
+SoilActinosumsdf$SampleUnique<-rownames(SoilActinosumsdf)
+SoilActinodf<-full_join(SoilActinosumsdf, SampleDataSoil)
+SoilActinodf$Type="Soil;Actinobacteria"
+SoilAmycetalessumsdf$SampleUnique<-rownames(SoilAmycetalessumsdf)
+SoilAmycetalesdf<-full_join(SoilAmycetalessumsdf, SampleDataSoil)
+SoilAmycetalesdf$Type="Soil;Actinomycetales"
+
+##model
+
+library(lme4)
+library(lmerTest) ##must load this package for the pvalues
+
+
+##need to join the data; then do a model with both;
+Actinodf$SampleType="Root"
+Actinodf$SampID="Actinobacteria_Root"
+SoilActinodf$SampleType="Soil"
+SoilActinodf$SampID="Actinobacteria_Soil"
+SoilActinodf$Actinosums<-SoilActinodf$SoilActinosums
+Actinofulldf<-full_join(Actinodf, SoilActinodf)
+
+Amycetalesdf$SampleType="Root"
+Amycetalesdf$SampID="Actinomycetales_Root"
+SoilAmycetalesdf$SampleType="Soil"
+SoilAmycetalesdf$SampID="Actinomycetales_Soil"
+SoilAmycetalesdf$Amycetalessums<-SoilAmycetalesdf$SoilAmycetalessums
+Amycetalesfulldf<-full_join(Amycetalesdf, SoilAmycetalesdf)
+
+##Full model (both soil and root data; sample type*aet interaction)
+model1a<-lmer(formula = Actinosums~scale(aet)*SampleType +(1|SiteID/Treenum), data = Actinofulldf, REML = F)
+
+model1b<-lmer(formula = Actinosums~SampleType+ scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Actinofulldf, REML = F)
+
+model1c<-lmer(formula = Actinosums~scale(aet)+SampleType +(1|SiteID/Treenum), data = Actinofulldf, REML = F)
+
+model1d<-lmer(formula = Actinosums~SampleType*scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Actinofulldf, REML = F)
+
+model1e<-lmer(formula = Actinosums~SampleType*scale(aet)*scale(pH) +(1|SiteID), data = Actinofulldf, REML = F)
+
+
+AIC(model1a, model1b, model1c, model1d, model1e)
+BIC(model1a, model1b, model1c, model1d, model1e)
+
+
+##Selecting Model1c; 1A and 1C are the lowerst scores (within 2 points for AIC and BIC; 1C has less parameters, so selecting this as the most parsimonious model (no interaction term for Sample Type and does not include soil pH; signifcant correlation between Actino abundance and sample type and Actino abundance and AET)
+model1c<-lmer(formula = Actinosums~scale(aet)+SampleType +(1|SiteID/Treenum), data = Actinofulldf, REML = T)
+
+qqp(residuals(model1c), col=2)
+
+##Visual inspection of residuals--all look good (no outliers)
+
+summary(model1c)
+
+
+coef = fixef(model1c)
+
+##the residuals are normally distributed; I have 1 outlier
+library(car)
+qqp(residuals(model1c), col=2)
+
+##just Actinomycetales 
+
+model1a<-lmer(formula = Amycetalessums~scale(aet)*SampleType +(1|SiteID/Treenum), data = Amycetalesfulldf, REML = F)
+
+model1b<-lmer(formula = Amycetalessums~SampleType+ scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Amycetalesfulldf, REML = F)
+
+model1c<-lmer(formula = Amycetalessums~scale(aet)+SampleType +(1|SiteID/Treenum), data = Amycetalesfulldf, REML = F)
+
+model1d<-lmer(formula = Amycetalessums~SampleType*scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Amycetalesfulldf, REML = F)
+
+model1e<-lmer(formula = Amycetalessums~SampleType*scale(aet)*scale(pH) +(1|SiteID), data = Amycetalesfulldf, REML = F)
+
+AIC(model1a, model1b, model1c, model1d, model1e)
+BIC(model1a, model1b, model1c, model1d, model1e)
+
+
+##Selecting Model1a; 1A and  for Actinomycetales; most parsimonious (full model)
+model1aAmycetales<-lmer(formula = Amycetalessums~scale(aet)*SampleType +(1|SiteID/Treenum), data = Amycetalesfulldf, REML = T)
+
+summary(model1aAmycetales)
+
+
+coefAmyc = fixef(model1aAmycetales)
+
+```
+Actinoplot
+````{r}
+##Plots
+Actinosumm<-(Actinofulldf) %>% 
+  group_by(SampID, SampleType, aet)%>% 
+  summarise(Meansumm=mean(na.exclude(Actinosums)),
+            SD=sd(na.exclude(Actinosums)))
+Actinosumm$PhyloResolution="Actinobacteria"
+
+Amycetalessumm<-(Amycetalesfulldf) %>% 
+  group_by(SampID, SampleType, aet)%>% 
+  summarise(Meansumm=mean(na.exclude(Amycetalessums)),
+            SD=sd(na.exclude(Amycetalessums)))
+Amycetalessumm$PhyloResolution="Actinomycetales"
+
+
+PhylumOrderdata<-full_join(Actinosumm, Amycetalessumm)
+
+
+
+Actinoplot<-ggplot(PhylumOrderdata, aes(x=scale(aet), y = Meansumm, color=SampID, fill=SampleType)) +
+  geom_pointrange(aes(
+      ymin = PhylumOrderdata$Meansumm-PhylumOrderdata$SD, 
+      ymax = PhylumOrderdata$Meansumm+PhylumOrderdata$SD),
+                    position=position_jitter(width=0.02), 
+                    linetype='solid', shape=21)+
+  geom_abline(aes(intercept=coef[1], slope=coef[2]), data=as.data.frame(coef), color="#BE5504")+
+  geom_abline(aes(intercept=coef[1]+coef[3], slope=coef[2]), data=as.data.frame(coef), color="#246bb5")+
+  geom_abline(aes(intercept=coefAmyc[1], slope=coefAmyc[2]), data=as.data.frame(coefAmyc), color="#FF9900")+
+  geom_abline(aes(intercept=coefAmyc[1]+coefAmyc[3], slope=coefAmyc[2]+coefAmyc[4]), data=as.data.frame(coefAmyc), color="#8BB8E8")+
+  guides(color=guide_legend("Identity", nrow=2, byrow = T))+
+  labs(x="AET (scaled)", y="Relative Abundance")+
+  scale_fill_manual(values=c("black", "darkgray"), name="Sample Type")+
+  scale_color_manual(values = c("Actinobacteria_Root" = "#BE5504", "Actinobacteria_Soil"="#246bb5", "Actinomycetales_Root"="#FF9900", "Actinomycetales_Soil"="#8BB8E8"), labels=c("Actinobacteria (Root)", "Actinobacteria (Soil)", "Actinomycetales (Root)", "Actinomycetales (Soil)"), name="Group")+
+  theme(
+            text = element_text(family = "Helvetica"),
+            plot.title = element_text(margin = margin(b=5, r=5, l=5, unit = "mm"),
+                                      size = rel(1),
+                                      hjust = 0.5),
+            panel.background = element_rect(fill="transparent", colour = NA),
+            plot.background = element_rect(fill="transparent",colour = NA),
+            panel.border = element_rect(fill="transparent", colour = "black"),
+            axis.title = element_text(size = rel(1)),
+            axis.title.y = element_text(angle=90, size = rel(1), margin = margin(r=3, unit = "mm")),
+            axis.title.x = element_text(size=rel(1), margin = margin(t=3, unit = "mm")),
+            axis.text.x = element_text(size=12, margin = unit(c(t = 2.5, r = 0, b = 0, l = 0), "mm")),
+            axis.text.y = element_text(size=12, margin = unit(c(t = 0, r = 2.5, b = 0, l = 0), "mm")),
+            axis.line = element_blank(),
+            axis.ticks.x = element_line(colour = "black"),
+            axis.ticks.y = element_line(colour = "black"),
+            axis.ticks.length=unit(-1.4, "mm"), 
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            legend.text = element_text(size=12),
+            legend.title = element_text(size =12,face = "bold" ),
+            legend.position = "top", legend.box = "vertical")
+```
+Chloroflexi and Firmicutes
+```{r}
+#Standardized by read count
+Top500roots = transform_sample_counts(Roots, function(x) 100 * x/sum(x*100))
+Top500soils = transform_sample_counts(Soils, function(x) 100 * x/sum(x*100))
+
+
+#Pulling data out of phyloseq object
+Roottable<-as(otu_table(Top500roots), "matrix")
+Roottable<-as.data.frame((Roottable))
+Roottable$OTU<-rownames(Roottable)
+Roottax<-as.data.frame(as(tax_table(Top500roots), "matrix"))
+Roottax$OTU<-rownames(Roottax) 
+SampleData<-as(sample_data(Top500roots), "data.frame")
+
+
+Chloroflexidf<-full_join(Roottable, Roottax)
+Chlorpflexidf<-filter(Chloroflexidf, Phylum=="Chloroflexi")
+Firmicutesdf<-full_join(Roottable, Roottax)
+Firmicutesdf<-filter(Firmicutesdf, Phylum=="Firmicutes")
+
+Chloroflexisums<-colSums(Chloroflexidf[,1:114])
+Chloroflexisumsdf=as.data.frame(Chloroflexisums)
+Firmicutessums<-colSums(Firmicutesdf[,1:114])
+Firmicutessumdf=as.data.frame(Firmicutessums)
+
+Chloroflexisumsdf$SampleUnique<-rownames(Chloroflexisumsdf)
+Chloroflexidf<-full_join(Chloroflexisumsdf, SampleData)
+Chloroflexidf$Type="Root;Chloroflexi"
+Firmicutessumdf$SampleUnique<-rownames(Firmicutessumdf)
+Firmicutesdf<-full_join(Firmicutessumdf, SampleData)
+Firmicutesdf$Type="Root;Firmicutes"
+
+
+#Pulling data out of phyloseq object
+Soiltable<-(as(otu_table(Top500soils), "matrix"))
+Soiltable<-as.data.frame((Soiltable))
+Soiltable$OTU<-rownames(Soiltable)
+Soiltax<-as.data.frame(as(tax_table(Top500soils), "matrix"))
+Soiltax$OTU<-rownames(Soiltax) 
+SampleDataSoil<-as(sample_data(Top500soils), "data.frame")
+
+
+SoilChloroflexidf<-full_join(Soiltable, Soiltax)
+SoilChloroflexidf<-filter(SoilChloroflexidf, Phylum=="Chloroflexi")
+SoilFirmicutesdf<-full_join(Soiltable, Soiltax)
+SoilFirmicutesdf<-filter(SoilFirmicutesdf, Phylum=="Firmicutes")
+
+SoilChloroflexisums<-colSums(SoilChloroflexidf[,1:122])
+SoilChloroflexisumsdf=as.data.frame(SoilChloroflexisums)
+SoilFirmicutessums<-colSums(SoilFirmicutesdf[,1:122])
+SoilFirmicutessumsdf=as.data.frame(SoilFirmicutessums)
+
+
+SoilChloroflexisumsdf$SampleUnique<-rownames(SoilChloroflexisumsdf)
+SoilChloroflexidf<-full_join(SoilChloroflexisumsdf, SampleDataSoil)
+SoilChloroflexidf$Type="Soil;Chloroflexi"
+SoilFirmicutessumsdf$SampleUnique<-rownames(SoilFirmicutessumsdf)
+SoilFirmicutesdf<-full_join(SoilFirmicutessumsdf, SampleDataSoil)
+SoilFirmicutesdf$Type="Soil;Firmicutes"
+
+##models
+
+##need to join the data; then do a model with both;
+Chloroflexisumsdf$Samptype="Root"
+SoilChloroflexidf$SampleType="Soil"
+SoilChloroflexidf$Chloroflexisums<-SoilChloroflexidf$SoilChloroflexisums
+Chloroflexifulldf<-full_join(Chloroflexidf, SoilChloroflexidf)
+
+Firmicutesdf$Samptype="Root"
+SoilFirmicutesdf$SampleType="Soil"
+SoilFirmicutesdf$Firmicutessums<-SoilFirmicutesdf$SoilFirmicutessums
+Firmicutesfulldf<-full_join(Firmicutesdf, SoilFirmicutesdf)
+
+##Full model (both soil and root data; sample type*aet interaction)
+Chloromodel1a<-lmer(formula = Chloroflexisums~scale(aet)*SampleType +(1|SiteID/Treenum), data = Chloroflexifulldf, REML = F)
+
+Chloromodel1b<-lmer(formula = Chloroflexisums~SampleType+ scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Chloroflexifulldf, REML = F)
+
+Chloromodel1c<-lmer(formula = Chloroflexisums~scale(aet)+SampleType +(1|SiteID/Treenum), data = Chloroflexifulldf, REML = F)
+
+Chloromodel1d<-lmer(formula = Chloroflexisums~SampleType*scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Chloroflexifulldf, REML = F)
+
+Chloromodel1e<-lmer(formula = Chloroflexisums~SampleType*scale(aet)*scale(pH) +(1|SiteID), data = Chloroflexifulldf, REML = F)
+
+
+AIC(Chloromodel1a, Chloromodel1b, Chloromodel1c, Chloromodel1d, Chloromodel1e)
+BIC(Chloromodel1a, Chloromodel1b, Chloromodel1c, Chloromodel1d, Chloromodel1e)
+
+
+##Selecting ChloroModel1e (lowest AIC and BIC)
+Chloromodel1e<-lmer(formula = Chloroflexisums~SampleType*scale(aet)*scale(pH) +(1|SiteID), data = Chloroflexifulldf, REML = T)
+qqp(residuals(Chloromodel1e), col=2)
+
+##Visual inspection of residuals--all look good (no outliers)
+
+summary(Chloromodel1e)
+
+##the residuals are normally distributed; I have 1 outlier
+library(car)
+qqp(residuals(Chloromodel1e), col=2)
+
+##just Firmicutes 
+##There were 4 extreme outliers (much higher abundance) that needed to be removed to fit a model (filtered these out)
+Firmicutesfulldf<-dplyr::filter(Firmicutesfulldf, Firmicutessums<0.038)
+
+Firmicutesmodel1a<-lmer(formula = Firmicutessums~scale(aet)*SampleType +(1|SiteID/Treenum), data = Firmicutesfulldf, REML = F)
+
+Firmicutesmodel1b<-lmer(formula = Firmicutessums~SampleType+ scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Firmicutesfulldf, REML = F)
+
+Firmicutesmodel1c<-lmer(formula = Firmicutessums~scale(aet)+SampleType +(1|SiteID/Treenum), data = Firmicutesfulldf, REML = F)
+
+Firmicutesmodel1d<-lmer(formula = Firmicutessums~SampleType*scale(aet)*scale(pH) +(1|SiteID/Treenum), data = Firmicutesfulldf, REML = F)
+
+Firmicutesmodel1e<-lmer(formula = Firmicutessums~SampleType*scale(aet)*scale(pH) +(1|SiteID), data = Firmicutesfulldf, REML = F)
+
+Firmicutesmodel1f<-lmer(formula = Firmicutessums~SampleType +(1|SiteID), data = Firmicutesfulldf, REML = F)
+
+AIC(Firmicutesmodel1a, Firmicutesmodel1b, Firmicutesmodel1c, Firmicutesmodel1d, Firmicutesmodel1e,Firmicutesmodel1f)
+BIC(Firmicutesmodel1a, Firmicutesmodel1b, Firmicutesmodel1c, Firmicutesmodel1d, Firmicutesmodel1e, Firmicutesmodel1f)
+
+
+##Selecting Firmicutesmodel1a 
+Firmicutesmodel1a<-lmer(formula = Firmicutessums~scale(aet)*SampleType +(1|SiteID/Treenum), data = Firmicutesfulldf, REML = T)
+
+library(car)
+qqp(residuals(Firmicutesmodel1a), col=2)
+
+summary(Firmicutesmodel1a)
+
+```
+
+```{r message=FALSE, warning=FALSE}
+setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
+Figure1A<-cowplot::plot_grid(ORDbray,
+                            rel_heights = c(0.1, 1.85),
+                            labels = c("a)"),
+                            label_fontfamily = "sans")
+
+Figure1B<-cowplot::plot_grid(barplot,
+                            ncol=1,
+                            labels = c("b)"),
+                            label_fontfamily = "sans")
+
+Figure1AB<-cowplot::plot_grid(Figure1A,Figure1B,
+                            rel_widths = c(3.9,2.8),
+                            nrow=1)
+
+setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
+#ggsave("Figure1AB.pdf", plot = Figure1AB, width = 10.2, height = 5) 
+
+Figure2<-cowplot::plot_grid(GDMph, GDMaet,
+                  labels = c("a)", "b)"), 
+                  label_size = 14,
+                  vjust=4.8,
+                  label_fontfamily = "sans")
+setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
+#ggsave("Figure2.pdf", plot = Figure2, width =8 , height = 3.85) 
+
+
+Figure3be<-cowplot::plot_grid(Shannonroots, Shannonsoils,Simpsonroots,Simpsonsoils,
+                   labels = c("b)", "c)", "d)", "e)"), 
+                   label_size = 12, 
+                   label_fontfamily = "sans")
+
+Figure3a<-cowplot::plot_grid(Actinoplot, 
+                            #rel_heights = c(1.85, 0.1),
+                            ncol=1,
+                            labels = c("a)"),
+                            label_fontfamily = "sans")
+
+Figure3AB<-cowplot::plot_grid(Figure3a,Figure3be,
+                            rel_heights = c(2.2,2),
+                            ncol=1,
+                            label_size = 12, 
+                            label_fontfamily = "sans")
+setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
+#ggsave("Figure3AB.pdf", plot = Figure3AB, width =8 , height = 9.1) 
+
+Figure4<-cowplot::plot_grid(RANKFULLplot)
+setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
+#ggsave("Figure4.pdf", plot = Figure4, width =12 , height = 8) 
+
+
+Figure5<-cowplot::plot_grid(Toptaxaplot)
+  
+setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
+#ggsave("Figure5.pdf", plot = Figure5, width =6 , height = 4) 
+
+Diversitymodeltable<-tab_model(model3c, model3d.Shannon, model4c, model4c.shannon, auto.label = F)
+Diversitymodeltable 
+
+ModeltableActino<-tab_model(model1c,model1aAmycetales, auto.label = F)
+ModeltableActino
+
+OTUmodeltab<-tab_model(Bradymodf, streptomoda1, auto.label = F)
+OTUmodeltab
+
+ChloroFirmicutestab<-tab_model(Firmicutesmodel1a, Chloromodel1e, auto.label = F)
+ChloroFirmicutestab
+
+
+mean(RichnessSOILS$Observed)
+sd(RichnessSOILS$Observed)
+mean(RichnessROOTS$Observed)
+sd(RichnessROOTS$Observed)
+
+
+```
+
