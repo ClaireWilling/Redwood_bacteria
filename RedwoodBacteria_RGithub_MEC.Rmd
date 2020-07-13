@@ -494,21 +494,21 @@ GDM Plots
 rootsplines<-isplineExtract(gdm.modelroot)
 soilsplines<-isplineExtract(gdm.modelsoil)
 
-GDMaet<-function(){plot(rootsplines[[1]][,"aet"], rootsplines[[2]][,"aet"], type="l", 
-lwd=3, xlab="Actual evapotranspiration (mm)",ylim=c(0,0.3),ylab="Partial Ecological Distance", tck=.02, las=1)
-   points(soilsplines[[1]][,"aet"], soilsplines[[2]][,"aet"], col="darkgray", type="l", lwd=3)
-   legend("topleft", legend = c("Root", "Soil"), col=c("black", "darkgray"), lwd=3, cex=0.8, box.lty=0)
+GDMsoil<-function(){plot(scale(soilsplines[[1]][,"pH"]), soilsplines[[2]][,"pH"], type="l", 
+lwd=3, xlab="Standardized variables (Soils)",ylab="Partial Ecological Distance", tck=.02, las=1, col="#800000")
+   points(scale(soilsplines[[1]][,"aet"]), soilsplines[[2]][,"aet"], col="#1b3752", type="l", lwd=3)
+   legend("topleft", legend = c("pH", "AET"), col=c("#800000", "#1b3752"), lwd=3, cex=0.8, box.lty=0)
    par(ps = 14, cex = 1, cex.main = 1)}
-GDMaet<-ggdraw(GDMaet)
+GDMsoil<-ggdraw(GDMsoil)
   
 
-GDMph<-function() {plot(rootsplines[[1]][,"pH"], rootsplines[[2]][,"pH"], type="l", col="black", 
-lwd=3, xlab="Soil pH", ylim=c(0,1.0),ylab="Partial Ecological Distance", tck=.02, las=1)
-  points(soilsplines[[1]][,"pH"], soilsplines[[2]][,"pH"], type="l", col="darkgray",ylim=c(0,1.0),
+GDMroot<-function() {plot(scale(rootsplines[[1]][,"pH"]), rootsplines[[2]][,"pH"], type="l", col="#800000", 
+lwd=3, xlab="Standardized variables (Roots)", ylab="Partial Ecological Distance", tck=.02, las=1, ylim=c(0, 1.0))
+  points(scale(rootsplines[[1]][,"aet"]), rootsplines[[2]][,"aet"], type="l", col="#1b3752",
 lwd=3)
-   legend("topleft", legend = c("Root", "Soil"), col=c("black", "darkgray"), lwd=3, cex=0.8, box.lty=0)
+   legend("topleft", legend = c("pH", "AET"), col=c("#800000", "#1b3752"), lwd=3, cex=0.8, box.lty=0)
    par(ps = 14, cex = 1, cex.main = 1)}
-GDMph<-ggdraw(GDMph)
+GDMroot<-ggdraw(GDMroot)
 
 ```
 
@@ -1542,13 +1542,13 @@ Figure1AB<-cowplot::plot_grid(Figure1A,Figure1B,
 setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
 #ggsave("Figure1AB.pdf", plot = Figure1AB, width = 10.2, height = 5) 
 
-Figure2<-cowplot::plot_grid(GDMph, GDMaet,
+Figure2<-cowplot::plot_grid(GDMsoil, GDMroot,
                   labels = c("a)", "b)"), 
                   label_size = 14,
                   vjust=4.8,
                   label_fontfamily = "sans")
 setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/")
-#ggsave("Figure2.pdf", plot = Figure2, width =8 , height = 3.85) 
+ggsave("Figure2.pdf", plot = Figure2, width =8 , height = 3.85) 
 
 
 Figure3be<-cowplot::plot_grid(Shannonroots, Shannonsoils,Simpsonroots,Simpsonsoils,
