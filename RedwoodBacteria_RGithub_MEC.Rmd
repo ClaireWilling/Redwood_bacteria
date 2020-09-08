@@ -1869,14 +1869,14 @@ setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Res
 
 FigureS2<-cowplot::plot_grid(Bnestedplot)
 setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/MinorRevisions")
-ggsave("FigureS2.jpeg", plot = FigureS2, width =6 , height = 5, dpi = 600)
+ggsave("FigureS2.jpeg", plot = FigureS2, width =6 , height = 5, dpi = 1200)
 nestednessroots
 nestednesssoils
 
 
 FigureS3<-cowplot::plot_grid(betadispplotsite)
 setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/MinorRevisions")
-#ggsave("FigureS3.pdf", plot = FigureS3, width =6 , height = 5)
+ggsave("FigureS3.jpeg", plot = FigureS3, width =6 , height = 5, dpi=1200)
 
 
 #Tables
