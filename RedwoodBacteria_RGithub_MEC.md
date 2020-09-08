@@ -3683,7 +3683,7 @@ setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Res
 
 FigureS2<-cowplot::plot_grid(Bnestedplot)
 setwd("~/Dropbox/Research/Thesis_Ch3/Manuscript/Molecular Ecology Submission/Resubmission/MinorRevisions")
-#ggsave("FigureS2.tiff", plot = FigureS2, width =6 , height = 5)
+ggsave("FigureS2.jpeg", plot = FigureS2, width =6 , height = 5, dpi = 600)
 nestednessroots
 ```
 
